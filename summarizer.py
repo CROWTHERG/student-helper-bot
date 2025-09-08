@@ -1,44 +1,66 @@
 # summarizer.py
 import os
-import docx
-from PyPDF2 import PdfReader
+import PyPDF2
+from docx import Document
 import openai
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Load OpenAI API key from environment
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 
-def extract_text(file_path):
-    if file_path.endswith(".pdf"):
-        reader = PdfReader(file_path)
-        return " ".join([page.extract_text() for page in reader.pages if page.extract_text()])
-    elif file_path.endswith(".docx"):
-        doc = docx.Document(file_path)
-        return " ".join([p.text for p in doc.paragraphs])
-    return ""
+def read_pdf(file_path):
+    text = ""
+    with open(file_path, "rb") as f:
+        reader = PyPDF2.PdfReader(f)
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+    return text
 
-def process_file(file_path):
-    text = extract_text(file_path)
-    if not text:
-        return "No readable text found.", [], []
+def read_docx(file_path):
+    doc = Document(file_path)
+    text = "\n".join([para.text for para in doc.paragraphs])
+    return text
 
-    prompt = f"""
-    Summarize this academic project for a student defense.
-    Provide:
-    1. A short summary (3–5 sentences)
-    2. Key points (bullet list)
-    3. Possible defense questions
-    Project text:\n{text}
-    """
-
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=prompt,
+def summarize_text(text):
+    prompt = (
+        f"Summarize the following project content in a few paragraphs, "
+        "list key points as bullet points, and provide 5 possible defense questions:\n\n"
+        f"{text}"
+    )
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role":"user","content":prompt}],
         max_tokens=500
     )
+    summary_text = response['choices'][0]['message']['content']
+    
+    # Split summary, key points, and questions (simple parsing)
+    lines = summary_text.split("\n")
+    summary, key_points, questions = [], [], []
+    section = "summary"
+    for line in lines:
+        line = line.strip()
+        if line.lower().startswith("key points") or line.startswith("🔑"):
+            section = "key_points"
+            continue
+        elif line.lower().startswith("possible questions") or line.startswith("❓"):
+            section = "questions"
+            continue
+        if section == "summary" and line:
+            summary.append(line)
+        elif section == "key_points" and line:
+            key_points.append(line.strip("- ").strip())
+        elif section == "questions" and line:
+            questions.append(line.strip("- ").strip())
+    
+    return "\n".join(summary), key_points, questions
 
-    output = response.choices[0].text.strip().split("\n")
-
-    summary = " ".join(output[:3])
-    key_points = output[3:8]
-    questions = output[8:12]
-
-    return summary, key_points, questions
+def process_file(file_path):
+    ext = file_path.split(".")[-1].lower()
+    if ext == "pdf":
+        text = read_pdf(file_path)
+    elif ext == "docx":
+        text = read_docx(file_path)
+    else:
+        return "Unsupported file type.", [], []
+    
+    return summarize_text(text)
