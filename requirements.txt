@@ -1,11 +1,4 @@
-# Telegram Bot core
 python-telegram-bot[webhooks]==20.4
-
-# PDF processing
 PyPDF2==3.0.1
-
-# Word document processing
 python-docx==0.8.11
-
-# OpenAI API
 openai==1.31.0
