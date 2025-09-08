@@ -141,7 +141,15 @@ def main():
     app.add_handler(MessageHandler(filters.Regex(".*Summarize Project.*"), summarize))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-    app.run_polling()
+    import sys
+PORT = int(os.environ.get("PORT", 10000))
+app.run_webhook(
+    listen="0.0.0.0",
+    port=PORT,
+    url_path=TELEGRAM_BOT_TOKEN,
+)
+app.bot.set_webhook(f"https://<your-render-domain>/{TELEGRAM_BOT_TOKEN}")
+
 
 if __name__ == "__main__":
     main()
