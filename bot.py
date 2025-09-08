@@ -7,7 +7,9 @@ from telegram.ext import (
 )
 from summarizer import process_file
 from database import init_db, save_past_question, get_past_questions
-from config import TELEGRAM_BOT_TOKEN
+
+# Read environment variables
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # States
 UPLOAD_PHOTO, UPLOAD_COURSE, UPLOAD_LEVEL, UPLOAD_YEAR = range(4)
