@@ -8,13 +8,15 @@ from telegram.ext import (
 from summarizer import process_file
 from database import init_db, save_past_question, get_past_questions
 
-# Read environment variables
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-
-# States
+# ===== States =====
 UPLOAD_PHOTO, UPLOAD_COURSE, UPLOAD_LEVEL, UPLOAD_YEAR = range(4)
 GET_COURSE, GET_LEVEL, GET_YEAR = range(3)
 
+# ===== ENVIRONMENT VARIABLES =====
+TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+PORT = int(os.environ.get("PORT", 10000))
+
+# ===== START COMMAND =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [["📘 Upload Past Question", "📗 Get Past Question"],
                 ["📑 Summarize Project"]]
@@ -102,16 +104,16 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(response, parse_mode="Markdown")
 
+# ===== MAIN FUNCTION =====
 def main():
     os.makedirs("storage", exist_ok=True)
     init_db()
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-    # Start
+    # Handlers
     app.add_handler(CommandHandler("start", start))
 
-    # Upload Past Question
     upload_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex(".*Upload Past Question.*"), uploadpast)],
         states={
@@ -123,7 +125,6 @@ def main():
         fallbacks=[]
     )
 
-    # Get Past Question
     get_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex(".*Get Past Question.*"), getpast)],
         states={
@@ -136,20 +137,18 @@ def main():
 
     app.add_handler(upload_conv)
     app.add_handler(get_conv)
-
-    # Summarizer
     app.add_handler(MessageHandler(filters.Regex(".*Summarize Project.*"), summarize))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-    import sys
-PORT = int(os.environ.get("PORT", 10000))
-app.run_webhook(
-    listen="0.0.0.0",
-    port=PORT,
-    url_path=TELEGRAM_BOT_TOKEN,
-)
-app.bot.set_webhook(f"https://<your-render-domain>/{TELEGRAM_BOT_TOKEN}")
+    # Webhook URL for Render
+    WEBHOOK_URL = f"https://student-helper-bot-er94.onrender.com/{TELEGRAM_BOT_TOKEN}"
+    app.bot.set_webhook(WEBHOOK_URL)
 
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=TELEGRAM_BOT_TOKEN
+    )
 
 if __name__ == "__main__":
     main()
