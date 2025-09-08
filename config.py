@@ -1,4 +1,0 @@
-# config.py
-TELEGRAM_BOT_TOKEN = "8249093967:AAGFQ-JPWutJ7l3Xim-2JBR36ztEFOdLSzU"
-OPENAI_API_KEY = "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"
-DB_PATH = "storage/bot.db"
