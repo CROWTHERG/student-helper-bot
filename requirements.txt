@@ -1,16 +1,11 @@
-# Telegram Bot with webhook support
-python-telegram-bot[webhooks]==20.3
+# Telegram Bot core
+python-telegram-bot[webhooks]==20.4
+
+# PDF processing
+PyPDF2==3.0.1
+
+# Word document processing
+python-docx==0.8.11
 
 # OpenAI API
 openai==1.31.0
-
-# PDF & DOCX processing
-PyPDF2==3.0.1
-python-docx==0.8.11
-
-# Database (SQLite, comes built-in)
-# If you want extras for async SQLite (optional)
-aiosqlite==0.20.1
-
-# Optional: for better logging (optional)
-python-dotenv==1.0.0
