@@ -1,6 +1,5 @@
 # bot.py
 import os
-import asyncio
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, MessageHandler,
@@ -106,7 +105,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(response, parse_mode="Markdown")
 
 # ===== MAIN FUNCTION =====
-async def main():
+def main():
     os.makedirs("storage", exist_ok=True)
     init_db()
 
@@ -141,15 +140,16 @@ async def main():
     app.add_handler(MessageHandler(filters.Regex(".*Summarize Project.*"), summarize))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-    # Webhook setup
+    # Webhook URL
     WEBHOOK_URL = f"https://student-helper-bot-er94.onrender.com/{TELEGRAM_BOT_TOKEN}"
-    await app.bot.set_webhook(WEBHOOK_URL)
+    app.bot.loop.create_task(app.bot.set_webhook(WEBHOOK_URL))
 
-    await app.run_webhook(
+    # Start webhook (PTB manages the loop)
+    app.run_webhook(
         listen="0.0.0.0",
         port=PORT,
         url_path=TELEGRAM_BOT_TOKEN
     )
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
