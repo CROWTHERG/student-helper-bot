@@ -54,12 +54,12 @@ async def handle_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_year(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["year"] = update.message.text
-    await update.message.reply_text("🗓 Enter the semester (e.g., 1st / 2nd):")
+    await update.message.reply_text("📝 Enter the semester (e.g., 1st / 2nd):")
     return UPLOAD_SEMESTER
 
 async def handle_semester(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    semester = update.message.text
     data = context.user_data
+    semester = update.message.text
     save_past_question(
         data["file_path"], data["course"], data["level"],
         data["year"], semester, update.message.from_user.username
@@ -69,9 +69,7 @@ async def handle_semester(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ===== GET PAST QUESTION =====
 async def getpast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📚 Enter the course code (e.g., BAM 111):"
-    )
+    await update.message.reply_text("📚 Enter the course code (e.g., BAM 111):")
     return GET_COURSE
 
 async def get_course(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -86,7 +84,7 @@ async def get_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_year(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["year"] = update.message.text
-    await update.message.reply_text("🗓 Enter the semester (e.g., 1st / 2nd):")
+    await update.message.reply_text("📝 Enter the semester (e.g., 1st / 2nd):")
     return GET_SEMESTER
 
 async def get_semester(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -99,8 +97,12 @@ async def get_semester(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not results:
         await update.message.reply_text("❌ No past questions found.")
     else:
+        await update.message.reply_text(f"📚 Found {len(results)} past question(s). Sending now...")
         for path in results:
-            await update.message.reply_photo(photo=open(path, "rb"))
+            try:
+                await update.message.reply_document(document=open(path, "rb"))
+            except Exception as e:
+                await update.message.reply_text(f"⚠️ Could not send {path}: {e}")
     return ConversationHandler.END
 
 # ===== SUMMARIZER =====
