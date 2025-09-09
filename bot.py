@@ -140,15 +140,14 @@ def main():
     app.add_handler(MessageHandler(filters.Regex(".*Summarize Project.*"), summarize))
     app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
-    # Webhook URL
+    # Webhook URL for Render
     WEBHOOK_URL = f"https://student-helper-bot-er94.onrender.com/{TELEGRAM_BOT_TOKEN}"
-    app.bot.loop.create_task(app.bot.set_webhook(WEBHOOK_URL))
 
-    # Start webhook (PTB manages the loop)
     app.run_webhook(
         listen="0.0.0.0",
         port=PORT,
-        url_path=TELEGRAM_BOT_TOKEN
+        url_path=TELEGRAM_BOT_TOKEN,
+        webhook_url=WEBHOOK_URL
     )
 
 if __name__ == "__main__":
