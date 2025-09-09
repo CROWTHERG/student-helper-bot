@@ -83,12 +83,12 @@ async def handle_semester(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ===== GET PAST QUESTION =====
 async def getpast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📅 Enter the year:")
+    await update.message.reply_text("📅 Enter the year (e.g., ..2024, 2025):")
     return GET_YEAR
 
 async def get_year(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["year"] = update.message.text
-    await update.message.reply_text("🎓 Enter the level:")
+    await update.message.reply_text("🎓 Enter the level (e.g., ND i, ND ii, HND i, HND ii):")
     return GET_LEVEL
 
 async def get_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
