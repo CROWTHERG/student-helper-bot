@@ -32,13 +32,27 @@ def save_past_question(file_path, course, level, year, semester, uploader):
     conn.commit()
     conn.close()
 
-def get_past_questions(course, level, year, semester):
+def get_past_questions(course=None, level=None, year=None, semester=None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""
-        SELECT file_path FROM past_questions
-        WHERE course = ? AND level = ? AND year = ? AND semester = ?
-    """, (course, level, year, semester))
+
+    query = "SELECT file_path FROM past_questions WHERE 1=1"
+    params = []
+
+    if course:
+        query += " AND course = ?"
+        params.append(course)
+    if level:
+        query += " AND level = ?"
+        params.append(level)
+    if year:
+        query += " AND year = ?"
+        params.append(year)
+    if semester:
+        query += " AND semester = ?"
+        params.append(semester)
+
+    c.execute(query, tuple(params))
     results = c.fetchall()
     conn.close()
     return [row[0] for row in results]
