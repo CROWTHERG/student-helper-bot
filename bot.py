@@ -1,4 +1,3 @@
-# bot.py
 import os
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
@@ -6,11 +5,11 @@ from telegram.ext import (
     ConversationHandler, ContextTypes, filters
 )
 from summarizer import process_file
-from database import init_db, save_past_question, get_past_questions
+from database import init_db, save_past_question, get_grouped_past_questions
 
 # ===== States =====
 UPLOAD_PHOTO, UPLOAD_COURSE, UPLOAD_LEVEL, UPLOAD_YEAR, UPLOAD_SEMESTER = range(5)
-GET_COURSE, GET_LEVEL, GET_YEAR, GET_SEMESTER = range(4)
+GET_LEVEL, GET_YEAR, GET_SEMESTER = range(3)
 
 # ===== ENVIRONMENT VARIABLES =====
 TELEGRAM_BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
@@ -39,7 +38,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file_path = f"storage/{file.file_unique_id}.jpg"
     await file.download_to_drive(file_path)
     context.user_data["file_path"] = file_path
-    await update.message.reply_text("📚 Enter the course code (e.g., BAM 111):")
+    await update.message.reply_text("📚 Enter the course (e.g., BAM111):")
     return UPLOAD_COURSE
 
 async def handle_course(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -54,12 +53,12 @@ async def handle_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_year(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["year"] = update.message.text
-    await update.message.reply_text("📝 Enter the semester (e.g., 1st / 2nd):")
+    await update.message.reply_text("📝 Enter the semester (1st or 2nd):")
     return UPLOAD_SEMESTER
 
 async def handle_semester(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    data = context.user_data
     semester = update.message.text
+    data = context.user_data
     save_past_question(
         data["file_path"], data["course"], data["level"],
         data["year"], semester, update.message.from_user.username
@@ -69,11 +68,6 @@ async def handle_semester(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ===== GET PAST QUESTION =====
 async def getpast(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("📚 Enter the course code (e.g., BAM 111):")
-    return GET_COURSE
-
-async def get_course(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["course"] = update.message.text
     await update.message.reply_text("🎓 Enter the level (e.g., ND I, HND II):")
     return GET_LEVEL
 
@@ -84,25 +78,28 @@ async def get_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_year(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["year"] = update.message.text
-    await update.message.reply_text("📝 Enter the semester (e.g., 1st / 2nd):")
+    await update.message.reply_text("📝 Enter the semester (1st or 2nd):")
     return GET_SEMESTER
 
 async def get_semester(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    course = context.user_data["course"]
     level = context.user_data["level"]
     year = context.user_data["year"]
     semester = update.message.text
 
-    results = get_past_questions(course, level, year, semester)
+    results = get_grouped_past_questions(level, year, semester)
     if not results:
         await update.message.reply_text("❌ No past questions found.")
     else:
-        await update.message.reply_text(f"📚 Found {len(results)} past question(s). Sending now...")
-        for path in results:
-            try:
-                await update.message.reply_document(document=open(path, "rb"))
-            except Exception as e:
-                await update.message.reply_text(f"⚠️ Could not send {path}: {e}")
+        await update.message.reply_text(
+            f"📅 Year: {year}\n🎓 Level: {level}\n📝 Semester: {semester}"
+        )
+        for course, files in results.items():
+            await update.message.reply_text(f"📘 *{course}*", parse_mode="Markdown")
+            for path in files:
+                try:
+                    await update.message.reply_photo(photo=open(path, "rb"))
+                except:
+                    await update.message.reply_text(f"(file missing: {path})")
     return ConversationHandler.END
 
 # ===== SUMMARIZER =====
@@ -129,7 +126,6 @@ def main():
 
     app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-    # Handlers
     app.add_handler(CommandHandler("start", start))
 
     upload_conv = ConversationHandler(
@@ -147,7 +143,6 @@ def main():
     get_conv = ConversationHandler(
         entry_points=[MessageHandler(filters.Regex(".*Get Past Question.*"), getpast)],
         states={
-            GET_COURSE: [MessageHandler(filters.TEXT, get_course)],
             GET_LEVEL: [MessageHandler(filters.TEXT, get_level)],
             GET_YEAR: [MessageHandler(filters.TEXT, get_year)],
             GET_SEMESTER: [MessageHandler(filters.TEXT, get_semester)]
