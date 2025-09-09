@@ -1,8 +1,7 @@
-# database.py
 import sqlite3
 import os
 
-DB_PATH = "storage/botdata.db"
+DB_PATH = "storage/past_questions.db"
 
 def init_db():
     os.makedirs("storage", exist_ok=True)
@@ -11,11 +10,11 @@ def init_db():
     c.execute("""
         CREATE TABLE IF NOT EXISTS past_questions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            file_path TEXT NOT NULL,
-            course TEXT NOT NULL,
-            level TEXT NOT NULL,
-            year TEXT NOT NULL,
-            semester TEXT NOT NULL,
+            file_path TEXT,
+            course TEXT,
+            level TEXT,
+            year TEXT,
+            semester TEXT,
             uploader TEXT
         )
     """)
@@ -25,20 +24,27 @@ def init_db():
 def save_past_question(file_path, course, level, year, semester, uploader):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""
-        INSERT INTO past_questions (file_path, course, level, year, semester, uploader)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (file_path, course.upper(), level.upper(), year, semester, uploader))
+    c.execute(
+        "INSERT INTO past_questions (file_path, course, level, year, semester, uploader) VALUES (?, ?, ?, ?, ?, ?)",
+        (file_path, course.upper(), level.upper(), year, semester, uploader)
+    )
     conn.commit()
     conn.close()
 
-def get_past_questions(course, level, year, semester):
+def get_grouped_past_questions(level, year, semester):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
-        SELECT file_path FROM past_questions
-        WHERE course = ? AND level = ? AND year = ? AND semester = ?
-    """, (course.upper(), level.upper(), year, semester))
+        SELECT course, file_path FROM past_questions
+        WHERE level = ? AND year = ? AND semester = ?
+        ORDER BY course
+    """, (level.upper(), year, semester))
     rows = c.fetchall()
     conn.close()
-    return [r[0] for r in rows]
+
+    grouped = {}
+    for course, file_path in rows:
+        if course not in grouped:
+            grouped[course] = []
+        grouped[course].append(file_path)
+    return grouped
